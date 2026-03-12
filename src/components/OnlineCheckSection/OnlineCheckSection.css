@@ -1,0 +1,36 @@
+.onlineCheckSection {
+    text-align: left;
+    margin-top: 5%;
+    width: 397px;
+
+}
+.h1-1 {
+    font-family: 'Montserrat';
+    font-weight: 400;
+    font-size: 30px;
+}
+
+.button {
+  border-radius: 18px;
+  border: none;
+  padding: 0.6em 1.2em;
+  font-size: 1.0em;
+  font-weight: 500;
+  font-family: inherit;
+  color: white;
+  background-color: #5e889e;
+  cursor: pointer;
+  width: 331px;
+  height: 53px;
+  transition: all 0.3s ease;
+
+   font-family: 'Montserrat';
+  font-weight: 500;
+  font-size: 12px;
+}
+
+.button:hover {
+    animation: ease 1s;
+    scale: 1.1;
+    border: none;
+}

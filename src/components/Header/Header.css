@@ -1,0 +1,43 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&family=Montserrat:wght@400;600&display=swap');
+
+.header {
+    text-align: left;
+    margin-bottom: 0px;
+    height: 133px;
+    background-color: white;
+}
+
+.line {
+    border: none;
+    height: 2px;
+    background-color: rgb(248, 237, 227);
+}
+
+.header-info {
+    display: flex;
+    gap: 100px;
+    color: lightgrey;
+}
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    margin-left: 120px;
+    margin-right: 120px;
+}
+.h1-header {
+    font-family: 'Coolvetica';
+    font-weight: 400;
+    font-size: 50px;
+    letter-spacing: 0.08em;
+    color: #4c6f81;
+}
+
+.p-header {
+    font-family: 'Montserrat';
+    font-weight: 400;
+    font-size: 18px;
+    color: black;
+}
