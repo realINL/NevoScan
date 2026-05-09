@@ -1,0 +1,109 @@
+.contacts {
+    position: relative;
+    z-index: 20;
+    align-self: center;
+    font-family: 'Montserrat', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+.contacts__trigger {
+    list-style: none;
+    margin: 0;
+    padding: 0.35rem 0.15rem;
+    font-family: inherit;
+    font-weight: 400;
+    font-size: clamp(14px, 2vw, 18px);
+    line-height: 1.2;
+    color: #0f172a;
+    cursor: pointer;
+    border-radius: 8px;
+    transition:
+        color 0.2s ease,
+        background-color 0.2s ease;
+}
+
+.contacts__trigger::-webkit-details-marker {
+    display: none;
+}
+
+.contacts__trigger::marker {
+    content: '';
+}
+
+.contacts__trigger:hover {
+    color: #4c6f81;
+}
+
+.contacts__trigger:focus {
+    outline: none;
+}
+
+.contacts__trigger:focus-visible {
+    outline: 2px solid #5e889e;
+    outline-offset: 3px;
+}
+
+.contacts[open] .contacts__trigger {
+    color: #4c6f81;
+}
+
+.contacts__panel {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    min-width: min(260px, 85vw);
+    padding: 0.65rem 0.85rem;
+    margin: 0;
+    box-sizing: border-box;
+    background: #ffffff;
+    border: 1px solid rgba(76, 111, 129, 0.18);
+    border-radius: 14px;
+    box-shadow:
+        0 1px 3px rgba(76, 111, 129, 0.1),
+        0 14px 36px rgba(15, 23, 42, 0.12);
+    animation: contacts-panel-in 0.2s ease-out;
+}
+
+@keyframes contacts-panel-in {
+    from {
+        opacity: 0;
+        transform: translateY(-6px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.contacts__link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.4rem 0.25rem;
+    font-family: inherit;
+    font-weight: 500;
+    font-size: clamp(13px, 1.6vw, 15px);
+    line-height: 1.35;
+    color: #5e889e;
+    text-decoration: none;
+    border-radius: 8px;
+    transition:
+        color 0.2s ease,
+        background-color 0.2s ease;
+}
+
+.contacts__link:hover {
+    color: #3d5f72;
+    background: rgba(94, 136, 158, 0.1);
+}
+
+.contacts__link:focus-visible {
+    outline: 2px solid #5e889e;
+    outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .contacts__panel {
+        animation: none;
+    }
+}

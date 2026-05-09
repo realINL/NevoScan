@@ -1,0 +1,310 @@
+.load {
+    --load-bg: #f8fafc;
+    --load-card: #ffffff;
+    --load-primary: #5e889e;
+    --load-primary-hover: #547a8e;
+    --load-border: #5e889e;
+    --load-text: #1e293b;
+    --load-muted: #64748b;
+    --load-accent: #ccfbf1;
+    /* --reset-button-backgroung: #c27f7f; */
+}
+.load-form {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: space-between;
+    height: 100%;
+    max-width: 45vw;
+    max-height: 600px;
+    margin: 0;
+    /* padding: 2rem 1.5rem; */
+    /* background: green; */
+    font-family: 'Montserrat', system-ui, sans-serif;
+}
+
+.load-form--busy {
+    cursor: wait;
+}
+
+.load-form--busy .load-file {
+    pointer-events: none;
+}
+
+.agreement--disabled {
+    cursor: not-allowed;
+}
+
+
+.load-title {
+    margin: 0 0 0.5rem;
+    font-family: 'Montserrat', system-ui, sans-serif;
+    font-size: clamp(18px, 2vw, 30px);
+    font-weight: 400;
+    color: #000000;
+}
+
+.load-subtitle {
+    margin: 0 0 2rem;
+    font-family: 'Montserrat', system-ui, sans-serif;
+    font-size: clamp(14px, 1vw, 18px);
+    font-weight: 400;
+    color: #000000;
+}
+.load-form-title {
+    font-family: 'Montserrat', system-ui, sans-serif;
+    font-size: clamp(16px, 1vw, 20px);
+    font-weight: 400;
+    color: #000000;
+}
+
+/* Состояние загрузки */
+.load__loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1.25rem;
+    min-height: 200px;
+    padding: 2rem;
+}
+
+.load__spinner {
+    width: 48px;
+    height: 48px;
+    border: 4px solid var(--load-border);
+    border-top-color: var(--load-primary);
+    border-radius: 50%;
+    animation: load-spin 0.9s linear infinite;
+}
+
+@keyframes load-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.load__loading-text {
+    margin: 0;
+    font-size: 1rem;
+    color: var(--load-muted);
+}
+
+/* Зона загрузки */
+.load-file {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    box-sizing: border-box;
+    height: clamp(180px, 32vh, 320px);
+    min-height: clamp(180px, 32vh, 320px);
+    padding: 0.5em;
+    background: transparent;
+    border: 1.5px dashed var(--load-border);
+    border-radius: 12px;
+    color: var(--load-muted);
+    transition: all 0.2s ease;
+    text-align: center;
+    overflow: hidden;
+
+    margin-top: 26px;
+}
+
+.load-file:hover,
+.load-file:focus-within,
+.load-file.drag {
+    border-color: var(--load-primary);
+    background: var(--load-accent);
+    color: var(--load-primary);
+}
+
+.load-file__icon {
+    margin-bottom: 0.75rem;
+    color: var(--load-primary);
+    opacity: 0.9;
+}
+
+.load-file__text {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 500;
+    color: inherit;
+}
+
+.load-file__hint {
+    margin: 0.25rem 0 0;
+    font-size: 0.8rem;
+    opacity: 0.85;
+}
+
+/* Соглашение */
+.agreement {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    /* width: 900px; */
+    /* margin: 1.5rem 0 1rem; */
+    cursor: pointer;
+    color: var(--load-text);
+}
+
+.agreement__input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    border: 0;
+}
+
+.agreement__checkmark {
+    flex-shrink: 0;
+    width: clamp(16px, 2vw, 20px);
+    height: clamp(16px, 2vw, 20px);
+    border-radius: 3px;
+    background: #d9d9d9;
+    transition: background 0.2s;
+}
+
+.agreement__input:checked + .agreement__checkmark {
+    background: var(--load-primary);
+    border-color: var(--load-primary);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E");
+}
+
+.agreement__input:focus-visible + .agreement__checkmark {
+    outline: 2px solid var(--load-primary);
+    outline-offset: 2px;
+}
+
+.agreement__label {
+    line-height: 1.4;
+    font-family: 'Montserrat', system-ui, sans-serif;
+    font-size: clamp(10px, 1vw, 12px);
+    font-weight: 400;
+    color: #000000;
+}
+
+/* Кнопка */
+.load__submit {
+    flex-shrink: 0;
+    box-sizing: border-box;
+    height: 82px;
+    min-height: 3.5em;
+    max-height: 3.5em;
+    width: 18.125em;
+    min-width: 0;
+    border-radius: clamp(10px, 1vw, 18px);
+    font-family: 'Montserrat', system-ui, sans-serif;
+    font-size: 16px;
+    font-weight: 500;
+    color: #fff;
+    background: var(--load-primary);
+    border: none;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.05s;
+
+    margin-top: 20px;
+}
+
+.load__submit:hover:not(:disabled) {
+    background: var(--load-primary-hover);
+}
+
+.load__submit:active:not(:disabled) {
+    transform: scale(0.99);
+}
+
+.load__submit:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.load__submit:focus-visible {
+    outline: 2px solid var(--load-primary);
+    outline-offset: 2px;
+}
+
+.load__error {
+    max-width: 520px;
+    text-align: center;
+    color: #b91c1c;
+    font-size: 0.9rem;
+    margin-top: 0.8em;
+    margin-bottom: 1.5em;
+}
+
+.input {
+    height: 0;
+    width: 0;
+    padding: 0;
+    margin: 0;
+    visibility: hidden;
+}
+
+.label--dropzone {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    cursor: pointer;
+}
+
+.load-file__sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    border: 0;
+}
+
+.input--dropzone {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+    z-index: 2;
+    visibility: visible;
+}
+
+.button_reset {
+    background: none;
+    color: #000000;
+    border: none;
+
+    font-family: 'Montserrat', system-ui, sans-serif;
+    font-size: clamp(14px, 1vw, 17px);
+    font-weight: 400;
+    cursor: pointer;
+    transition: color 0.2s;
+    padding: 0;
+
+    margin-top: 0.8em;
+    margin-bottom: 1.5em;
+ 
+}
+.button_reset:hover {
+    scale: 1.2;
+}
+.button_reset:disabled {
+    opacity: 0;
+    cursor: default;
+}
+
+.file-preview {
+    width: 100%;
+    height: 100%;
+    max-width: 100%;
+    max-height: 100%;
+    min-height: 0;
+    object-fit: contain;
+}

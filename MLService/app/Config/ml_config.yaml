@@ -1,0 +1,12 @@
+detection_model:
+  name: best
+  imgsz: 640
+  iou: 0.8
+  conf: 0.4
+
+classification_model:
+  name: best_f1_resnet
+  threshold: 0.3
+
+device:
+  device: cpu

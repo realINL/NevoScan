@@ -1,0 +1,21 @@
+stages:
+  - build
+  - test
+
+.setup-test-env:
+  before_script:
+    - cp env.test .env
+
+build-job:
+  extends: .setup-test-env
+  stage: build
+  script:
+    - docker compose build
+
+test-job:
+  extends: .setup-test-env
+  stage: test
+  needs: [build-job]
+  script:
+    - docker compose run --rm --no-deps mlservice pytest -s -v tests/
+

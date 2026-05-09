@@ -1,0 +1,62 @@
+<resources>
+    <string name="app_name">Nevoscan</string>
+
+    <!-- Home -->
+    <string name="home_title">Проверьте свою\nродинку</string>
+    <string name="home_subtitle">Загрузите фото своей родинки и узнайте о ней подробнее</string>
+    <string name="btn_start_analysis">Начать анализ</string>
+    <string name="btn_my_researches">Мои исследования</string>
+
+    <!-- Analyze -->
+    <string name="analyze_recommendations_title">Рекомендации</string>
+    <string name="analyze_pick_source">Выберите источник для загрузки фото</string>
+    <string name="btn_gallery">Медиатека</string>
+    <string name="btn_camera">Камера</string>
+    <string name="btn_reset">Сбросить</string>
+    <string name="btn_start_analyze">Начать анализ</string>
+    <string name="analyze_in_progress">Анализируем ваше фото</string>
+    <string name="detection_in_progress">Ищем зону на фото…</string>
+    <string name="detection_no_lesion">Новообразование не обнаружено. Попробуйте другое фото.</string>
+    <string name="yolo_model_missing">Файл модели детекции не найден. Добавьте yolo.onnx в каталог assets приложения.</string>
+    <string name="error_bitmap_copy">Не удалось скопировать изображение</string>
+    <string name="error_processing_title">Ошибка обработки</string>
+
+    <!-- Result -->
+    <string name="result_title">Результат анализа</string>
+    <string name="result_disclaimer">Не является диагнозом</string>
+    <string name="result_process_title">Процесс анализа</string>
+    <string name="result_phase_crop">1. Обрезка</string>
+    <string name="result_phase_mask">2. Маска родинки</string>
+    <string name="label_benign_short">Доброкачественность</string>
+    <string name="label_malign_short">Злокачественность</string>
+    <!-- Как в ResearchView.swift MomentalResultView probsView -->
+    <!-- Два пробела после %% как в Swift: "\(pct)  доброкачественное..." -->
+    <string name="result_prob_benign_full">%1$d%%  доброкачественное новообразование</string>
+    <string name="result_prob_malign_full">%1$d%%  злокачественное новообразование</string>
+    <string name="result_not_found">Запись не найдена</string>
+
+    <!-- History -->
+    <string name="history_title">История анализов</string>
+    <string name="history_card_safety">%1$d%% безопасности</string>
+
+    <!-- Errors & legacy (оставлены для совместимости) -->
+    <string name="label_source">Исходное изображение</string>
+    <string name="label_result">Результат</string>
+    <string name="no_photo_hint">Выберите фото из галереи или сделайте снимок камерой</string>
+    <string name="no_result_hint">Результат анализа пока отсутствует</string>
+    <string name="btn_pick_photo">Выбрать фото</string>
+    <string name="btn_take_photo">Сделать фото</string>
+    <string name="btn_analyze">Анализировать</string>
+    <string name="btn_analyzing">Анализ...</string>
+    <string name="camera_permission_denied">Разрешение на камеру не выдано</string>
+    <string name="error_no_image_for_analyze">Сначала выберите или сделайте фото</string>
+    <string name="model_not_ready_fallback">Модель пока недоступна (%1$s). Показан резервный результат.</string>
+    <string name="no_objects_detected_fallback">Объекты не найдены. Показан резервный результат.</string>
+    <string name="analyze_failed_fallback">Ошибка анализа. Показан резервный результат.</string>
+    <string name="label_classification">Классификация</string>
+    <string name="label_benign">Доброкачественное</string>
+    <string name="label_malignant">Злокачественное</string>
+    <string name="classification_verdict">Вердикт: %1$s</string>
+    <string name="classification_probs">Доброкачественное: %1$.1f%%\nЗлокачественное: %2$.1f%%</string>
+    <string name="classifier_not_ready_fallback">Классификатор недоступен (%1$s). Показана только сегментация.</string>
+</resources>

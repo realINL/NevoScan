@@ -1,0 +1,45 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&family=Montserrat:wght@400;600&display=swap');
+
+.header {
+    /* text-align: left; */
+    content: center;
+    align-items: center;
+    margin-bottom: 0px;
+    height: clamp(70px, 10vh, 133px);
+    background-color: white;
+}
+
+.header-info {
+    display: flex;
+    gap: clamp(20px, 5vw, 100px); 
+    color: lightgrey
+}
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    margin: 0 auto;
+    padding: 0 50px;
+    max-width: 1200px;
+}
+.h1-header {
+    font-family: 'Coolvetica';
+    font-weight: 400;
+    font-size: clamp(20px, 3vw, 50px);
+    letter-spacing: 0.08em;
+    color: #4c6f81;
+    cursor: pointer;
+}
+
+.p-header {
+    font-family: 'Montserrat';
+    font-weight: 400;
+    font-size: clamp(14px, 2vw, 18px); 
+    color: black;
+    cursor: pointer;
+}
+.p-header:hover {
+    color: #4c6f81;
+}
