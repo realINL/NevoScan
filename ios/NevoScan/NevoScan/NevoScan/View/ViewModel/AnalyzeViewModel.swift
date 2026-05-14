@@ -35,9 +35,9 @@ class AnalyzeViewModel: ObservableObject {
     @Published var researchId: String?
     
     
-    let engine: CoreEngine
+    let engine: EngineProtocol
     
-    init(modelContext: ModelContext, engine: CoreEngine) {
+    init(modelContext: ModelContext, engine: EngineProtocol) {
         self.modelContext = modelContext
         self.engine = engine
         

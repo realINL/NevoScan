@@ -14,7 +14,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.nevoscan"
-        minSdk = 23
+        minSdk = 24
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
@@ -73,11 +73,11 @@ dependencies {
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
 
-    val cameraxVersion = "1.4.0-alpha03"
-    implementation("androidx.camera:camera-camera2:${cameraxVersion}")
-    implementation("androidx.camera:camera-lifecycle:${cameraxVersion}")
-    implementation("androidx.camera:camera-view:${cameraxVersion}")
-    implementation("org.pytorch:executorch-android:0.6.0-rc1")
-    implementation("com.microsoft.onnxruntime:onnxruntime-android:1.19.2")
+    implementation(libs.androidx.graphics.path)
+    implementation(libs.androidx.camera.camera2)
+    implementation(libs.androidx.camera.lifecycle)
+    implementation(libs.androidx.camera.view)
+    implementation(libs.executorch.android)
+    implementation(libs.onnxruntime.android)
 
 }

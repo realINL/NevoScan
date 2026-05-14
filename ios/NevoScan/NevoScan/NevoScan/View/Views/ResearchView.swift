@@ -141,7 +141,7 @@ struct MomentalResultView: View {
     // MARK: Header View
     private var header: some View {
         VStack(spacing: 16) {
-            Text("Результат анализа")
+            Text("result.title")
                 .font(.title)
             Text(research.date.formatted(date: .long, time: .shortened))
                 .font(.subheadline)
@@ -168,16 +168,16 @@ struct MomentalResultView: View {
         return VStack(spacing: 14) {
             Group {
                 if compare {
-                    Text("\(research.benignProbability.formatted(.roundedPercent))  доброкачественное новообразование")
+                    Text("result.prob.benign \(research.benignProbability.formatted(.roundedPercent))")
                         .font(.headline)
                     
-                    Text("\(research.malignProbability.formatted(.roundedPercent))  злокачественное новообразование")
+                    Text("result.prob.malign \(research.malignProbability.formatted(.roundedPercent))")
                         .font(.subheadline)
                 } else {
-                    Text("\(research.malignProbability.formatted(.roundedPercent))  злокачественное новообразование")
+                    Text("result.prob.malign \(research.malignProbability.formatted(.roundedPercent))")
                         .font(.headline)
                     
-                    Text("\(research.benignProbability.formatted(.roundedPercent))  доброкачественное новообразование")
+                    Text("result.prob.benign \(research.benignProbability.formatted(.roundedPercent))")
                         .font(.subheadline)
                 }
             }
@@ -190,7 +190,7 @@ struct MomentalResultView: View {
     /// View contains images reciedev in research
     private var processImages: some View {
         VStack(spacing: 22) {
-            Text("Процесс анализа")
+            Text("result.process")
                 .font(.callout)
             
             HStack(spacing: 13) {
@@ -219,7 +219,7 @@ struct MomentalResultView: View {
     
     // MARK: Disclaimer
     private var disclaimer: some View {
-        Label("Не является диагнозом", systemImage: "exclamationmark.triangle.fill")
+        Label("result.disclaimer", systemImage: "exclamationmark.triangle.fill")
             .padding()
             .frame(maxWidth: .infinity)
             .background(Color.yellow.opacity(0.35))
@@ -231,9 +231,9 @@ struct MomentalResultView: View {
 }
 
 // MARK: Phases of research
-enum ResearchPhases: String {
-    case crop = "1. Обрезка"
-    case segment = "2. Маска родинки"
+enum ResearchPhases: LocalizedStringKey {
+    case crop = "result.phase.crop"
+    case segment = "result.phase.mask"
 }
 #Preview {
     MomentalResultView(research: Research.MOCK_RESEARCH)

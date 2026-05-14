@@ -1,0 +1,67 @@
+/* 
+  Localizable.strings
+  NevoScan
+
+  Created by Илья Лебедев on 14.05.2026.
+  
+*/
+
+// MARK: Приложение
+"app.name" = "NevoScan";
+
+// MARK: Главный экран
+"home.headline" = "Проверьте свою\nродинку";
+"home.subtitle" = "Загрузите фото своей родинки и узнайте о ней подробнее";
+"home.my_analyses" = "Мои исследования";
+
+// MARK: Действия
+"action.start_analysis" = "Начать анализ";
+"action.reset" = "Сбросить";
+"action.delete" = "Удалить";
+"action.ok" = "OK";
+
+// MARK: Анализ
+"analyze.recommendations" = "Рекомендации";
+"analyze.pick_source" = "Выберите источник для загрузки фото";
+"analyze.photo_library" = "Медиатека";
+"analyze.camera" = "Камера";
+"analyze.loading" = "Анализируем ваше фото";
+
+// MARK: История
+"history.title" = "История анализов";
+"history.card.safety %@" = "%@ безопасности";
+"history.empty" = "История пока пуста";
+
+// MARK: Результат
+"result.title" = "Результат анализа";
+"result.prob.benign %@" = "%@ доброкачественное новообразование";
+"result.prob.malign %@" = "%@ злокачественное новообразование";
+"result.process" = "Процесс анализа";
+"result.disclaimer" = "Не является диагнозом";
+"result.phase.crop" = "1. Обрезка";
+"result.phase.mask" = "2. Маска родинки";
+
+// MARK: Инструкции
+"instruction.focus.title" = "Четкая фокусировка";
+"instruction.focus.body" = "Сфотографируйте родинку с расстояния 10-15 см, используя макрорежим или зум. Избегайте размытых снимков";
+"instruction.light.title" = "Освещение";
+"instruction.light.body" = "Родинка должна быть хорошо освещена, чтобы были видны границы, текстура и цвет. Лучше всего использовать естественный дневной свет";
+"instruction.clear.title" = "Ничего лишнего";
+"instruction.clear.body" = "Родинка должна быть полностью видна. На снимке не должно быть волос, закрывающих родинку, одежды или косметики";
+
+// MARK: Ошибки
+"error.processing" = "Ошибка обработки";
+"error.noMole" = "Не удалось найти родинку на изображении";
+
+// MARK: Terms of use
+"terms.title" = "Условия использования";
+"terms.highlight1.title" = "Профилактическое средство";
+"terms.highlight1.description" = "Приложение не заменяет консультацию врача";
+"terms.highlight2.title" = "Локальная обработка";
+"terms.highlight2.description" = "Все фотографии анализируются только на вашем устройстве";
+"terms.highlight3.title" = "Конфиденциальность";
+"terms.highlight3.description" = "Данные не передаются третьим лицам";
+"terms.basic_provisions" = "Основные положения";
+"terms.terms" = "Политика конфиденциальности";
+"terms.agree" = "Принимаю условия";
+"terms.agree.disclaimer" = "Нажимая кнопку, вы соглашаетесь с условиями";

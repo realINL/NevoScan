@@ -9,11 +9,7 @@ import kotlin.math.max
 
 
 fun prepareImageLikeMainPyBeforeSegmentation(bitmap: Bitmap): Bitmap =
-    if (bitmap.config == Bitmap.Config.HARDWARE) {
-        bitmap.copy(Bitmap.Config.ARGB_8888, false)
-    } else {
-        bitmap
-    }
+    bitmapPreparedForMl(bitmap)
 
 
 fun cropBitmapWithNormalizedBox(bitmap: Bitmap, box: BoundingBox): Bitmap {
@@ -55,7 +51,6 @@ fun drawBoundingBoxOnBitmap(bitmap: Bitmap, box: BoundingBox): Bitmap {
         style = Paint.Style.STROKE
         strokeWidth = strokePx
         isAntiAlias = true
-        // Для эффекта скругления используем PathEffect с радиусом 15
         pathEffect = android.graphics.CornerPathEffect(15f)
     }
     canvas.drawRect(left, top, right, bottom, outlinePaint)

@@ -22,13 +22,14 @@ protocol engine {
 class CoreEngine {
 //    private let detector: Detector2
 //    private let segmenter: ResNetFeatMask8x8Classifier
-    private let seg: Segmenter
-    private let classifier: ResNetFeatMask8x8Classifier?
+    private let seg: SegmenterProtocol
+    private let classifier: Classifier?
     
     init() throws {
 //        self.detector = Detector2()
-        self.seg = try Segmenter()
-        self.classifier = try ResNetFeatMask8x8Classifier.loadBundled()
+//        self.seg = try Segmenter()
+        self.seg = try SegmenterImageType()
+        self.classifier = try Classifier()
     }
     
 //    func detect(on image: UIImage) async throws -> (cropedImage: UIImage,
@@ -75,11 +76,12 @@ class CoreEngine {
 //    }
     private func classify(image: UIImage, binaryMask256: MLMultiArray, deepLabMask: MLMultiArray) throws -> (benign: Double, malign: Double) {
         do {
-            let classificationResult = try classifier?.probabilities(
-                from: image,
-                binaryMask256: binaryMask256,
-                deepLabMaskForDump: deepLabMask
-            )
+            let classificationResult = try classifier?.classify(image: image, segmentationOutput: binaryMask256)
+//            (
+//                from: image,
+//                binaryMask256: binaryMask256,
+//                deepLabMaskForDump: deepLabMask
+//            )
             guard let benign = classificationResult?.benign, let malign = classificationResult?.malign else { throw CoreEngineErrors.classificationError }
             return (benign, malign)
         } catch {
@@ -91,6 +93,9 @@ class CoreEngine {
     // MARK: Predict function
     /// Main function for mole analysis. Returns research result
     func predict(on image: UIImage) async throws -> Research {
+        #if DEBUG
+        PipelineDebugRecorder.reset()
+        #endif
         let segmentation = try await self.segment(image: image)
         let binary256 = try seg.binaryMask256ForClassifier(fromRawOutput: segmentation.maskArray)
         let classification = try self.classify(image: image, binaryMask256: binary256, deepLabMask: segmentation.maskArray)

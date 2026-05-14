@@ -13,29 +13,37 @@ struct MyResearchs: View {
     @Query private var researchs: [Research]
     var body: some View {
         VStack{
-            Text("История анализов")
+            Text("history.title")
                 .font(.title2)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding()
     
 //                .headerProminence(.standard)
-            List {
-                
-                ForEach(researchs.sorted(by: { $0.date >= $1.date})) { research in
-                    NavigationLink(destination: MomentalResultView(research: research)) {
-                        cardView(research)
-                    }
-                    .buttonStyle(PlainButtonStyle())
-                    .swipeActions {
-                                Button("Delete", systemImage: "trash", role: .destructive) {
-                                    context.delete(research)
-                                }
+            if researchs.isEmpty {
+                Spacer()
+                Text("history.empty")
+                    .font(.title)
+                    .foregroundStyle(Color(.systemGray))
+                Spacer()
+            } else {
+                List {
+                    
+                    ForEach(researchs.sorted(by: { $0.date >= $1.date})) { research in
+                        NavigationLink(destination: MomentalResultView(research: research)) {
+                            cardView(research)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        .swipeActions {
+                            Button("action.delete", systemImage: "trash", role: .destructive) {
+                                context.delete(research)
                             }
+                        }
+                        
+                    }
                     
                 }
-                
+                .listStyle(.plain)
             }
-            .listStyle(.plain)
         }
         .scrollContentBackground(.hidden)
         .header()
@@ -48,7 +56,7 @@ struct MyResearchs: View {
                 .cornerRadius(12)
                 .frame(width: 75, height: 58)
                 .scaledToFill()
-            Text("\(research.benignProbability.formatted(.roundedPercent)) безопасности")
+            Text("history.card.safety \(research.benignProbability.formatted(.roundedPercent))")
                 .font(.body)
                 .padding(.leading, 11)
         }

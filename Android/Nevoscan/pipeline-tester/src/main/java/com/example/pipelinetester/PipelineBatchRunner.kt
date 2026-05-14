@@ -22,11 +22,11 @@ class PipelineBatchRunner(context: Context) {
 
     private val segmentationExecutor = SegmentationExecutor(
         appContext,
-        Constants.SEGMENTATION_MODEL_PATH
+        Constants.SEGMENTATION_MODEL_PATH,
     )
     private val classificationExecutor = ClassificationExecutor(
         appContext,
-        Constants.CLASSIFICATION_MODEL_PATH
+        Constants.CLASSIFICATION_MODEL_PATH,
     )
 
     fun runAll(log: (String) -> Unit): BatchRunResult {
@@ -36,7 +36,7 @@ class PipelineBatchRunner(context: Context) {
     fun runAll(
         inputDir: File,
         outputDir: File,
-        log: (String) -> Unit
+        log: (String) -> Unit,
     ): BatchRunResult {
         val outputCsv = File(outputDir, "results.csv")
         val masksDir = File(outputDir, "output_masks")
@@ -59,7 +59,7 @@ class PipelineBatchRunner(context: Context) {
         classificationExecutor.setup()
         log("Найдено изображений: ${images.size}")
 
-        outputCsv.writeText("image_name,prob_mal,prob_ben\n")
+        outputCsv.writeText("image_name,prob_mal,prob_ben,seg_ms,cls_ms,total_ms\n")
         var success = 0
         var errors = 0
 
@@ -70,28 +70,49 @@ class PipelineBatchRunner(context: Context) {
                 val workBmp = prepareImageLikeMainPyBeforeSegmentation(source)
                 try {
                     val segmented = segmentationExecutor.segment(workBmp)
-                    val cls = classificationExecutor.classify(
-                        image = workBmp,
-                        segMask = segmented.mask,
-                        segMaskWidth = segmented.maskWidth,
-                        segMaskHeight = segmented.maskHeight
+                    val maskFullRes = binaryMaskUpscaleNearest(
+                        segmented.mask,
+                        segmented.maskWidth,
+                        segmented.maskHeight,
+                        workBmp.width,
+                        workBmp.height,
                     )
-                    saveMask(
-                        imageName = imageFile.nameWithoutExtension,
-                        mask = segmented.mask,
-                        maskW = segmented.maskWidth,
-                        maskH = segmented.maskHeight,
-                        targetW = workBmp.width,
-                        targetH = workBmp.height
+                    val maskBitmap = renderBinaryMaskGrayscale(
+                        maskFullRes,
+                        workBmp.width,
+                        workBmp.height,
                     )
-                    outputCsv.appendText("${imageFile.name},${cls.probMalign},${cls.probBenign}\n")
+
+                    val cls = runCatching {
+                        classificationExecutor.classify(
+                            image = workBmp,
+                            segMask = segmented.mask,
+                            segMaskWidth = segmented.maskWidth,
+                            segMaskHeight = segmented.maskHeight,
+                        )
+                    }.getOrNull()
+
+                    val benign = cls?.probBenign ?: 0.5f
+                    val malign = cls?.probMalign ?: 0.5f
+                    val segMs = segmented.inferenceMs
+                    val clsMs = cls?.inferenceMs ?: 0L
+                    val totalMs = segMs + clsMs
+
+                    saveMask(masksDir, imageFile.nameWithoutExtension, maskBitmap)
+                    maskBitmap.recycle()
+
+                    outputCsv.appendText(
+                        "${imageFile.name},$malign,$benign,$segMs,$clsMs,$totalMs\n"
+                    )
                     success++
-                    log("OK: ${imageFile.name}")
+                    log("OK: ${imageFile.name} (seg=${segMs}ms, cls=${clsMs}ms, total=${totalMs}ms)")
                 } finally {
-                    if (workBmp !== source) {
+                    if (workBmp !== source && !workBmp.isRecycled) {
                         workBmp.recycle()
                     }
-                    source.recycle()
+                    if (!source.isRecycled) {
+                        source.recycle()
+                    }
                 }
             } catch (t: Throwable) {
                 errors++
@@ -103,19 +124,13 @@ class PipelineBatchRunner(context: Context) {
     }
 
     private fun saveMask(
+        masksDir: File,
         imageName: String,
-        mask: ByteArray,
-        maskW: Int,
-        maskH: Int,
-        targetW: Int,
-        targetH: Int
+        maskBitmap: Bitmap,
     ) {
-        val fullResMask = binaryMaskUpscaleNearest(mask, maskW, maskH, targetW, targetH)
-        val maskBitmap = renderBinaryMaskGrayscale(fullResMask, targetW, targetH)
         val outFile = File(masksDir, "${imageName}_mask.png")
         FileOutputStream(outFile).use { fos ->
             maskBitmap.compress(Bitmap.CompressFormat.PNG, 100, fos)
         }
-        maskBitmap.recycle()
     }
 }

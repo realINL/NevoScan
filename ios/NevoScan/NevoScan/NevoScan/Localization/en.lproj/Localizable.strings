@@ -1,0 +1,67 @@
+/* 
+  Localizable.strings
+  NevoScan
+
+  Created by Илья Лебедев on 14.05.2026.
+  
+*/
+
+// MARK: App
+"app.name" = "NevoScan";
+
+// MARK: Home
+"home.headline" = "Check your\nmole";
+"home.subtitle" = "Upload a photo of your mole to learn more about it";
+"home.my_analyses" = "My analyses";
+
+// MARK: Actions
+"action.start_analysis" = "Start analysis";
+"action.reset" = "Reset";
+"action.delete" = "Delete";
+"action.ok" = "OK";
+
+// MARK: Analyze flow
+"analyze.recommendations" = "Recommendations";
+"analyze.pick_source" = "Choose a source for your photo";
+"analyze.photo_library" = "Photo library";
+"analyze.camera" = "Camera";
+"analyze.loading" = "Analyzing your photo";
+
+// MARK: History
+"history.title" = "Analysis history";
+"history.card.safety %@" = "%@ safety";
+"history.empty" = "No history yet";
+
+// MARK: Result
+"result.title" = "Analysis results";
+"result.prob.benign %@" = "%@  benign neoplasm";
+"result.prob.malign %@" = "%@  malignant neoplasm";
+"result.process" = "Analysis process";
+"result.disclaimer" = "This is not a medical diagnosis";
+"result.phase.crop" = "1. Crop";
+"result.phase.mask" = "2. Mole mask";
+
+// MARK: Instructions
+"instruction.focus.title" = "Sharp focus";
+"instruction.focus.body" = "Photograph the mole from 10–15 cm away using macro mode or zoom. Avoid blurry shots";
+"instruction.light.title" = "Lighting";
+"instruction.light.body" = "The mole should be well lit so its borders, texture, and color are visible. Natural daylight works best";
+"instruction.clear.title" = "Nothing in the way";
+"instruction.clear.body" = "The entire mole must be visible. Hair, clothing, or makeup should not cover it";
+
+// MARK: Errors
+"error.processing" = "Processing error";
+"error.noMole" = "Could not detect a mole in the image";
+
+// MARK: Terms of use
+"terms.title" = "Terms of Use";
+"terms.highlight1.title" = "Preventive Tool";
+"terms.highlight1.description" = "The app does not replace a doctor's consultation";
+"terms.highlight2.title" = "Local Processing";
+"terms.highlight2.description" = "All photos are analyzed only on your device";
+"terms.highlight3.title" = "Privacy";
+"terms.highlight3.description" = "Data is not shared with third parties";
+"terms.basic_provisions" = "Basic Provisions";
+"terms.terms" = "Privacy Policy";
+"terms.agree" = "I accept the terms";
+"terms.agree.disclaimer" = "By tapping button, you agree to the terms";

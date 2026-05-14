@@ -54,6 +54,9 @@ class Detector(
     private var numChannel: Int = 0
     private var numElements: Int = 0
     private var outputCellMajor: Boolean = false
+    /** ONNX с `nms=True`: выход `[1, max_det, 6]` (NMS уже в графе). */
+    private var outputHasEmbeddedNms: Boolean = false
+    private var nmsFeaturesPerDet: Int = 6
     private var inputShapeHint: LongArray? = null
 
     private var oneShotListener: DetectorListener? = null
@@ -268,15 +271,34 @@ class Detector(
     }
 
     private fun parseOutputShape(outShape: LongArray) {
+        outputHasEmbeddedNms = false
         var s = outShape
         if (s.size == 4 && s[0] == 1L) {
             s = when {
-                s[1] == 1L && s[2] > 0 && s[3] > 0 -> longArrayOf(1, s[2], s[3]) // [1,1,84,8400]
-                s[3] == 1L && s[1] > 0 && s[2] > 0 -> longArrayOf(1, s[1], s[2]) // [1,84,8400,1]
+                s[1] == 1L && s[2] > 0 && s[3] > 0 -> longArrayOf(1, s[2], s[3])
+                s[3] == 1L && s[1] > 0 && s[2] > 0 -> longArrayOf(1, s[1], s[2])
                 else -> s
             }
         }
         if (s.size == 3) {
+            when {
+                s[2] == NMS_FEATURES_PER_DET_L && s[1] in 1..MAX_EMBEDDED_NMS_DET_L -> {
+                    outputHasEmbeddedNms = true
+                    nmsFeaturesPerDet = NMS_FEATURES_PER_DET
+                    numChannel = NMS_FEATURES_PER_DET
+                    numElements = s[1].toInt()
+                    outputCellMajor = false
+                    return
+                }
+                s[1] == NMS_FEATURES_PER_DET_L && s[2] in 1..MAX_EMBEDDED_NMS_DET_L -> {
+                    outputHasEmbeddedNms = true
+                    nmsFeaturesPerDet = NMS_FEATURES_PER_DET
+                    numChannel = NMS_FEATURES_PER_DET
+                    numElements = s[2].toInt()
+                    outputCellMajor = true
+                    return
+                }
+            }
             val a = s[1].toInt()
             val b = s[2].toInt()
             if (a < b) {
@@ -335,6 +357,9 @@ class Detector(
     }
 
     private fun bestBox(array: FloatArray): List<BoundingBox>? {
+        if (outputHasEmbeddedNms) {
+            return parseEmbeddedNmsOutput(array)
+        }
         if (numChannel == 0 || numElements == 0) return null
         val classCount = numChannel - 4
         if (classCount <= 0) return null
@@ -411,6 +436,128 @@ class Detector(
         return nms.take(effectivePostNmsMax()).toMutableList()
     }
 
+    /**
+     * Четыре координаты — xyxy в пространстве letterbox,
+     */
+    private fun parseEmbeddedNmsOutput(array: FloatArray): List<BoundingBox>? {
+        if (numElements <= 0) return null
+        val invModel = 1f / maxOf(tensorWidth, tensorHeight).toFloat()
+        val boxes = mutableListOf<BoundingBox>()
+
+        for (det in 0 until numElements) {
+            val v0 = array[nmsFeatureIndex(det, 0)]
+            val v1 = array[nmsFeatureIndex(det, 1)]
+            val v2 = array[nmsFeatureIndex(det, 2)]
+            val v3 = array[nmsFeatureIndex(det, 3)]
+            val conf = array[nmsFeatureIndex(det, 4)]
+            val clsRaw = array[nmsFeatureIndex(det, 5)]
+
+            if (conf <= Constants.INFERENCE_CONF) continue
+            if (conf == 0f && v0 == 0f && v1 == 0f && v2 == 0f && v3 == 0f) continue
+
+            val parsed = boxFromEmbeddedCoords(v0, v1, v2, v3, invModel) ?: continue
+            val clsIdx = clsRaw.toInt().coerceAtLeast(0)
+            val clsName = if (clsIdx in labels.indices) labels[clsIdx] else "cls$clsIdx"
+            boxes.add(
+                BoundingBox(
+                    x1 = parsed.x1,
+                    y1 = parsed.y1,
+                    x2 = parsed.x2,
+                    y2 = parsed.y2,
+                    cx = parsed.cx,
+                    cy = parsed.cy,
+                    w = parsed.w,
+                    h = parsed.h,
+                    cnf = conf,
+                    cls = clsIdx,
+                    clsName = clsName,
+                )
+            )
+        }
+
+        if (boxes.isEmpty()) return null
+        return boxes
+            .sortedByDescending { it.cnf }
+            .take(Constants.YOLO_MAX_DET)
+            .toMutableList()
+    }
+
+    private data class NormBox(
+        val x1: Float,
+        val y1: Float,
+        val x2: Float,
+        val y2: Float,
+        val cx: Float,
+        val cy: Float,
+        val w: Float,
+        val h: Float,
+    )
+
+    private fun boxFromEmbeddedCoords(
+        v0: Float,
+        v1: Float,
+        v2: Float,
+        v3: Float,
+        invModel: Float,
+    ): NormBox? {
+        val scale = if (maxOf(v0, v1, v2, v3) > 1f) invModel else 1f
+        val x1 = v0 * scale
+        val y1 = v1 * scale
+        val x2 = v2 * scale
+        val y2 = v3 * scale
+        val xyxy = normBoxFromXyxy(x1, y1, x2, y2)
+        if (xyxy != null) return xyxy
+        // Если вес отдаёт cx,cy,w,h.
+        return normBoxFromXywh(x1, y1, x2, y2)
+    }
+
+    private fun normBoxFromXyxy(x1: Float, y1: Float, x2: Float, y2: Float): NormBox? {
+        if (x2 <= x1 + 1e-4f || y2 <= y1 + 1e-4f) return null
+        val left = x1.coerceIn(0f, 1f)
+        val top = y1.coerceIn(0f, 1f)
+        val right = x2.coerceIn(0f, 1f)
+        val bottom = y2.coerceIn(0f, 1f)
+        if (right <= left + 1e-4f || bottom <= top + 1e-4f) return null
+        val w = right - left
+        val h = bottom - top
+        if (w * h < MIN_BOX_AREA_NORM) return null
+        return NormBox(
+            x1 = left,
+            y1 = top,
+            x2 = right,
+            y2 = bottom,
+            cx = (left + right) / 2f,
+            cy = (top + bottom) / 2f,
+            w = w,
+            h = h,
+        )
+    }
+
+    private fun normBoxFromXywh(cx: Float, cy: Float, bw: Float, bh: Float): NormBox? {
+        if (bw <= 0f || bh <= 0f) return null
+        var x1 = cx - (bw / 2f)
+        var y1 = cy - (bh / 2f)
+        var x2 = cx + (bw / 2f)
+        var y2 = cy + (bh / 2f)
+        x1 = x1.coerceIn(0f, 1f)
+        y1 = y1.coerceIn(0f, 1f)
+        x2 = x2.coerceIn(0f, 1f)
+        y2 = y2.coerceIn(0f, 1f)
+        if (x2 <= x1 + 1e-4f || y2 <= y1 + 1e-4f) return null
+        val w = x2 - x1
+        val h = y2 - y1
+        if (w * h < MIN_BOX_AREA_NORM) return null
+        return NormBox(x1, y1, x2, y2, (x1 + x2) / 2f, (y1 + y2) / 2f, w, h)
+    }
+
+    private fun nmsFeatureIndex(det: Int, feature: Int): Int {
+        return if (outputCellMajor) {
+            feature * numElements + det
+        } else {
+            det * nmsFeaturesPerDet + feature
+        }
+    }
+
     private fun effectivePostNmsMax(): Int =
         if (numChannel <= 6) postNmsMaxSingleClass() else postNmsMax()
 
@@ -476,6 +623,10 @@ class Detector(
     }
 
     companion object {
+        private const val NMS_FEATURES_PER_DET = 6
+        private const val NMS_FEATURES_PER_DET_L = 6L
+        private const val MAX_EMBEDDED_NMS_DET_L = 512L
+        private const val MIN_BOX_AREA_NORM = 1e-4f
         private const val PRE_NMS_MAX_SINGLE = 400
         private const val PRE_NMS_MAX_MULTI = 800
     }

@@ -33,6 +33,7 @@ data class AnalyzeUiState(
     val lastResearchId: Long? = null,
     val error: String? = null,
     val transientMessage: String? = null,
+    val showNoDetectionAlert: Boolean = false,
 )
 
 class AnalyzeViewModel(
@@ -49,6 +50,10 @@ class AnalyzeViewModel(
 
     fun consumeTransientMessage() {
         _uiState.update { it.copy(transientMessage = null) }
+    }
+
+    fun dismissNoDetectionAlert() {
+        _uiState.update { it.copy(showNoDetectionAlert = false) }
     }
 
     private fun recycleSelectionBitmaps(showing: AnalyzeUiState) {
@@ -74,6 +79,7 @@ class AnalyzeViewModel(
                     lesionCropForPipeline = null,
                     canStartAnalysis = false,
                     transientMessage = null,
+                    showNoDetectionAlert = false,
                     presentInstructions = false,
                 )
             }
@@ -103,7 +109,8 @@ class AnalyzeViewModel(
                         preview = full,
                         crop = null,
                         ok = false,
-                        message = app.getString(R.string.detection_no_lesion),
+                        message = null,
+                        noDetection = true,
                     )
                 }
                 val preview = drawBoundingBoxOnBitmap(full, box)
@@ -125,6 +132,7 @@ class AnalyzeViewModel(
                     lesionCropForPipeline = result.crop,
                     canStartAnalysis = result.ok,
                     transientMessage = result.message,
+                    showNoDetectionAlert = result.noDetection,
                 )
             }
         }
@@ -141,6 +149,7 @@ class AnalyzeViewModel(
                 error = null,
                 lastResearchId = null,
                 transientMessage = null,
+                showNoDetectionAlert = false,
                 presentInstructions = true,
             )
         }
@@ -247,6 +256,7 @@ private data class ImageProcessResult(
     val crop: Bitmap?,
     val ok: Boolean,
     val message: String?,
+    val noDetection: Boolean = false,
 )
 
 fun AnalyzeViewModel.setSelectedImageFromCompose(image: androidx.compose.ui.graphics.ImageBitmap?) {

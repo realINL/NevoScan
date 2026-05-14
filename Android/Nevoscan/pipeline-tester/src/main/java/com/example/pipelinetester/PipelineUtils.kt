@@ -3,11 +3,7 @@ package com.example.pipelinetester
 import android.graphics.Bitmap
 
 fun prepareImageLikeMainPyBeforeSegmentation(bitmap: Bitmap): Bitmap =
-    if (bitmap.config == Bitmap.Config.HARDWARE) {
-        bitmap.copy(Bitmap.Config.ARGB_8888, false)
-    } else {
-        bitmap
-    }
+    bitmapPreparedForMl(bitmap)
 
 fun renderBinaryMaskGrayscale(mask01: ByteArray, width: Int, height: Int): Bitmap {
     require(mask01.size >= width * height) { "mask size ${mask01.size} < ${width * height}" }

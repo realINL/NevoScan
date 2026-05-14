@@ -21,7 +21,7 @@ struct HeaderModifier: ViewModifier {
     }
     
     private var headerView: some View {
-            Text("NevoScan")
+            Text("app.name")
                 .bold()
                 .foregroundStyle(.nevo)
         }

@@ -12,6 +12,9 @@ struct CoreTestApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .onAppear {
+                    UserDefaults.standard.set(true, forKey: "nv_debug_pipeline_dump")
+                }
         }
         
     }

@@ -11,7 +11,7 @@ import SwiftData
 class DIContainer {
     static let shared = DIContainer()
     
-    let engine: CoreEngine
+    let engine: EngineProtocol
     
     private init() {
         do {

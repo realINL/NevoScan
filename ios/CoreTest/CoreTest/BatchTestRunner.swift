@@ -135,5 +135,6 @@ enum BatchTestRunner {
         return projectRoot
             .deletingLastPathComponent()
             .appendingPathComponent("Images", isDirectory: true)
+            .appendingPathComponent("Imgs", isDirectory: true)
     }
 }

@@ -593,8 +593,9 @@
 //  DeepLabSkinSegmenter.swift
 //  NevoScan
 //
-//  Соответствие `core/main.py` + экспорту `core/seg_to_core.py`:
-//  вход Core ML — float32 RGB NCHW [1,3,256,256], пиксели 0…255; внутри mlpackage — /255, ImageNet Normalize, сеть, bilinear 256, sigmoid.
+//  Сегментация Core ML (два контракта):
+//  • **Новый экспорт** (`exportmodels.ipynb`, SegmentationWrapper): `image` float32 RGB NCHW [1,3,256,256], **0…1**; внутри — ImageNet, DeepLab, bilinear, sigmoid; выход **`segmentation_mask`**.
+//  • **Старый** (`seg_to_core.py`): `image` **0…255** float; внутри /255 + ImageNet; выход **`mask`**.
 //  Геометрия как в Python: `Resize((256, 256))` (растяжение до квадрата), не letterbox.
 //  Растеризация в sRGB (ближе к PIL), ось Y как у `ToTensor` (верх кадра → индекс 0).
 //  Интерполяция: stretch 256 — `.medium` (ближе к PIL bilinear, чем `.high`); копия 1:1 в тензор — `.none`; апскейл маски — `.medium` как `cv2.resize` по умолчанию (LINEAR).
@@ -607,6 +608,12 @@ import Foundation
 import UIKit
 import CoreImage
 import VideoToolbox
+
+protocol SegmenterProtocol {
+    func runSegmentation(on image: UIImage) async -> (maskResult: UIImage?, maskArray: MLMultiArray?)
+    func binaryMask256ForClassifier(fromRawOutput mask: MLMultiArray) throws -> MLMultiArray
+}
+
 enum DeepLabSegmentationError: LocalizedError {
     case modelNotFound
     case predictionFailed(Error)
@@ -633,7 +640,8 @@ enum DeepLabSegmentationError: LocalizedError {
 private enum DeepLabConfig {
     static let size = 256
     static let inputName = "image"
-    static let outputName = "mask"
+    static let outputNameLegacy = "mask"
+    static let outputNameWrapper = "segmentation_mask"
     static let maskThreshold: Float = 0.5
 }
 
@@ -755,20 +763,77 @@ private extension UIImage {
     }
 }
 
-class Segmenter {
-    
-    let config: MLModelConfiguration
-    let model: deeplab
-    
+class Segmenter: SegmenterProtocol {
+
+    private let model: MLModel
+    private let segInputFeatureName: String
+    private let segOutputFeatureName: String
+    /// Как в ноутбуке: RGB float NCHW 0…1 (иначе — 0…255 float).
+    private let segInputUsesFloat01: Bool
+
     init() throws {
+        guard let url = Self.resolveSegmentationModelBundleURL() else {
+            throw CoreEngineErrors.failureLoadSegmenter
+        }
         do {
-            self.config = MLModelConfiguration()
-            self.model = try deeplab(configuration: config)
+            let ml = try MLModel(contentsOf: url)
+            self.model = ml
+            let io = Self.resolveSegIO(model: ml)
+            self.segInputFeatureName = io.inputName
+            self.segOutputFeatureName = io.outputName
+            self.segInputUsesFloat01 = io.inputUsesFloat01
         } catch {
             throw CoreEngineErrors.failureLoadSegmenter
         }
     }
-    
+
+    private static func resolveSegmentationModelBundleURL() -> URL? {
+        let names = [
+            "deeplab",
+            "SegmentationModel3",
+            "SegmentationModel",
+            "DeepLabV3Seg",
+            "DeepLabV3",
+            "DeepLab",
+        ]
+        for name in names {
+            if let u = Bundle.main.url(forResource: name, withExtension: "mlmodelc") {
+                return u
+            }
+            if let u = Bundle.main.url(forResource: name, withExtension: "mlpackage") {
+                return u
+            }
+        }
+        return nil
+    }
+
+    /// Новый экспорт определяем по выходу `segmentation_mask` (как `exportmodels.ipynb`).
+    private static func resolveSegIO(model: MLModel) -> (inputName: String, outputName: String, inputUsesFloat01: Bool) {
+        let desc = model.modelDescription
+        let inputName: String
+        if desc.inputDescriptionsByName[DeepLabConfig.inputName] != nil {
+            inputName = DeepLabConfig.inputName
+        } else if let first = desc.inputDescriptionsByName.values.first(where: { $0.type == .multiArray }) {
+            inputName = first.name
+        } else {
+            inputName = DeepLabConfig.inputName
+        }
+
+        let outputName: String
+        if desc.outputDescriptionsByName[DeepLabConfig.outputNameWrapper] != nil {
+            outputName = DeepLabConfig.outputNameWrapper
+        } else if desc.outputDescriptionsByName[DeepLabConfig.outputNameLegacy] != nil {
+            outputName = DeepLabConfig.outputNameLegacy
+        } else if let first = desc.outputDescriptionsByName.values.first(where: { $0.type == .multiArray }) {
+            outputName = first.name
+        } else {
+            outputName = DeepLabConfig.outputNameLegacy
+        }
+
+        let inputUsesFloat01 = (outputName == DeepLabConfig.outputNameWrapper)
+        return (inputName, outputName, inputUsesFloat01)
+    }
+
     func runSegmentation(on image: UIImage) async -> (maskResult: UIImage?, maskArray: MLMultiArray?) {
         var maskResult: UIImage?
         var maskArray: MLMultiArray?
@@ -779,13 +844,38 @@ class Segmenter {
                 return (nil, nil)
             }
             let letter = try resizeStretch256(prepared: prepared, cgImage: cgImage)
-            guard let letterCg = letter.image.cgImage else {
-                print("Segmenter: resize 256 cgImage == nil")
+            let size = DeepLabConfig.size
+            let inputTensor: MLMultiArray
+            if segInputUsesFloat01 {
+                // PIL-совместимый bilinear: src_pos = (dst+0.5)*scale − 0.5
+                // Совпадает с Python preprocess_image / transforms.Resize+ToTensor
+                inputTensor = try pilBilinearNCHWTensor(
+                    from: cgImage, dstWidth: size, dstHeight: size,
+                    normalize: false, mean: [], std: []
+                )
+            } else {
+                guard let letterCg = letter.image.cgImage else {
+                    print("Segmenter: resize 256 cgImage == nil")
+                    return (nil, nil)
+                }
+                inputTensor = try rgbNCHWFloatTensor(from256: letterCg)
+            }
+            #if DEBUG
+            PipelineDebugRecorder.recordSegInputIfNeeded(
+                segInput: inputTensor,
+                isFloat01: segInputUsesFloat01,
+                preparedCGImageWidth: cgImage.width,
+                preparedCGImageHeight: cgImage.height
+            )
+            #endif
+            let provider = try MLDictionaryFeatureProvider(dictionary: [
+                segInputFeatureName: MLFeatureValue(multiArray: inputTensor),
+            ])
+            let output = try await model.prediction(from: provider)
+            guard let mask = output.featureValue(for: segOutputFeatureName)?.multiArrayValue else {
+                print("Segmenter: нет выхода \(segOutputFeatureName)")
                 return (nil, nil)
             }
-            let inputTensor = try rgbNCHWFloatTensor(from256: letterCg)
-            let output = try await model.prediction(input: deeplabInput(image: inputTensor))
-            let mask = output.mask
             maskArray = mask
             let binary = try toBinaryMask256(mask)
             maskResult = try binaryMaskUIImage(fromBinaryMask256: binary, letterboxLayout: letter.layout)
@@ -819,7 +909,9 @@ class Segmenter {
                 let o = mlaLinearOffset(strides: strides, indices: idx)
                 let v = mlaReadFloat(multiArray, linear: o)
                 let p = min(max(v, 0), 1)
-                pixels[y * width + x] = p > threshold ? 255 : 0
+                // Первая строка данных CGImage — нижний ряд кадра; y тензора = верх (как NCHW).
+                let bufRow = height - 1 - y
+                pixels[bufRow * width + x] = p > threshold ? 255 : 0
             }
         }
 
@@ -878,8 +970,8 @@ class Segmenter {
 
         func writePixel(_ y: Int, _ x: Int, white: Bool) {
             let c: UInt8 = white ? 255 : 0
-            // Строка y тензора = верх изображения = верх буфера (как NCHW после ToTensor в PyTorch).
-            let row = y
+            // y тензора — сверху вниз (NCHW). В буфере CGBitmap первая строка памяти — низ кадра.
+            let row = h - 1 - y
             let o = row * bytesPerRow + x * bytesPerPixel
             raw[o] = c
             raw[o + 1] = c
@@ -1066,6 +1158,50 @@ class Segmenter {
         return multi
     }
 
+    /// Как `ToTensor` в ноутбуке: float32 NCHW, значения **0…1** (нормализация ImageNet внутри mlpackage).
+    private func rgbNCHWFloatTensor01(from256 cgImage: CGImage) throws -> MLMultiArray {
+        let w = cgImage.width
+        let h = cgImage.height
+        guard w == DeepLabConfig.size, h == DeepLabConfig.size else {
+            throw DeepLabSegmentationError.couldNotPrepareImage
+        }
+
+        let colorSpace = DeepLabColorSpace.sRGBOrFallback
+        let bytesPerPixel = 4
+        let bytesPerRow = bytesPerPixel * w
+        var raw = [UInt8](repeating: 0, count: h * bytesPerRow)
+        guard let ctx = CGContext(
+            data: &raw,
+            width: w,
+            height: h,
+            bitsPerComponent: 8,
+            bytesPerRow: bytesPerRow,
+            space: colorSpace,
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else {
+            throw DeepLabSegmentationError.couldNotPrepareImage
+        }
+        ctx.interpolationQuality = .none
+        ctx.translateBy(x: 0, y: CGFloat(h))
+        ctx.scaleBy(x: 1, y: -1)
+        ctx.draw(cgImage, in: CGRect(x: 0, y: 0, width: w, height: h))
+
+        let inv255: Float = 1.0 / 255.0
+        let multi = try MLMultiArray(shape: [1, 3, NSNumber(value: h), NSNumber(value: w)], dataType: .float32)
+        for y in 0..<h {
+            for x in 0..<w {
+                let o = y * bytesPerRow + x * bytesPerPixel
+                let r = Float(raw[o]) * inv255
+                let g = Float(raw[o + 1]) * inv255
+                let b = Float(raw[o + 2]) * inv255
+                multi[[0, 0, y, x] as [NSNumber]] = NSNumber(value: r)
+                multi[[0, 1, y, x] as [NSNumber]] = NSNumber(value: g)
+                multi[[0, 2, y, x] as [NSNumber]] = NSNumber(value: b)
+            }
+        }
+        return multi
+    }
+
     // MARK: - Mask postprocess
 
     /// Для логитов (не наш случай при экспорте из `seg_to_core.py`, где sigmoid в графе).
@@ -1146,7 +1282,9 @@ class Segmenter {
             for x in 0..<w {
                 let v = Float(truncating: mask[[0, 0, y, x] as [NSNumber]])
                 let c: UInt8 = v > 0.5 ? 255 : 0
-                let o = y * bytesPerRow + x * bytesPerPixel
+                // CGBitmap: строка 0 памяти = низ изображения; индекс [*, y, x] в NCHW — верх.
+                let bufRow = h - 1 - y
+                let o = bufRow * bytesPerRow + x * bytesPerPixel
                 raw[o] = c
                 raw[o + 1] = c
                 raw[o + 2] = c
@@ -1217,127 +1355,127 @@ class Segmenter {
 
 
 
-extension UIImage {
-  /**
-    Converts the image to an ARGB `CVPixelBuffer`.
-  */
-  public func pixelBuffer() -> CVPixelBuffer? {
-    return pixelBuffer(width: Int(size.width), height: Int(size.height))
-  }
+//extension UIImage {
+//  /**
+//    Converts the image to an ARGB `CVPixelBuffer`.
+//  */
+//  public func pixelBuffer() -> CVPixelBuffer? {
+//    return pixelBuffer(width: Int(size.width), height: Int(size.height))
+//  }
+//
+//  /**
+//    Resizes the image to `width` x `height` and converts it to an ARGB
+//    `CVPixelBuffer`.
+//  */
+//  public func pixelBuffer(width: Int, height: Int) -> CVPixelBuffer? {
+//    return pixelBuffer(width: width, height: height,
+//                       pixelFormatType: kCVPixelFormatType_32ARGB,
+//                       colorSpace: CGColorSpaceCreateDeviceRGB(),
+//                       alphaInfo: .noneSkipFirst)
+//  }
+//
+//  /**
+//    Converts the image to a grayscale `CVPixelBuffer`.
+//  */
+//  public func pixelBufferGray() -> CVPixelBuffer? {
+//    return pixelBufferGray(width: Int(size.width), height: Int(size.height))
+//  }
+//
+//  /**
+//    Resizes the image to `width` x `height` and converts it to a grayscale
+//    `CVPixelBuffer`.
+//  */
+//  public func pixelBufferGray(width: Int, height: Int) -> CVPixelBuffer? {
+//    return pixelBuffer(width: width, height: height,
+//                       pixelFormatType: kCVPixelFormatType_OneComponent8,
+//                       colorSpace: CGColorSpaceCreateDeviceGray(),
+//                       alphaInfo: .none)
+//  }
+//
+//  /**
+//    Resizes the image to `width` x `height` and converts it to a `CVPixelBuffer`
+//    with the specified pixel format, color space, and alpha channel.
+//  */
+//  public func pixelBuffer(width: Int, height: Int,
+//                          pixelFormatType: OSType,
+//                          colorSpace: CGColorSpace,
+//                          alphaInfo: CGImageAlphaInfo) -> CVPixelBuffer? {
+//    var maybePixelBuffer: CVPixelBuffer?
+//    let attrs = [kCVPixelBufferCGImageCompatibilityKey: kCFBooleanTrue,
+//                 kCVPixelBufferCGBitmapContextCompatibilityKey: kCFBooleanTrue]
+//    let status = CVPixelBufferCreate(kCFAllocatorDefault,
+//                                     width,
+//                                     height,
+//                                     pixelFormatType,
+//                                     attrs as CFDictionary,
+//                                     &maybePixelBuffer)
+//
+//    guard status == kCVReturnSuccess, let pixelBuffer = maybePixelBuffer else {
+//      return nil
+//    }
+//
+//    let flags = CVPixelBufferLockFlags(rawValue: 0)
+//    guard kCVReturnSuccess == CVPixelBufferLockBaseAddress(pixelBuffer, flags) else {
+//      return nil
+//    }
+//    defer { CVPixelBufferUnlockBaseAddress(pixelBuffer, flags) }
+//
+//    guard let context = CGContext(data: CVPixelBufferGetBaseAddress(pixelBuffer),
+//                                  width: width,
+//                                  height: height,
+//                                  bitsPerComponent: 8,
+//                                  bytesPerRow: CVPixelBufferGetBytesPerRow(pixelBuffer),
+//                                  space: colorSpace,
+//                                  bitmapInfo: alphaInfo.rawValue)
+//    else {
+//      return nil
+//    }
+//
+//    UIGraphicsPushContext(context)
+//    context.translateBy(x: 0, y: CGFloat(height))
+//    context.scaleBy(x: 1, y: -1)
+//    self.draw(in: CGRect(x: 0, y: 0, width: width, height: height))
+//    UIGraphicsPopContext()
+//
+//    return pixelBuffer
+//  }
+//}
 
-  /**
-    Resizes the image to `width` x `height` and converts it to an ARGB
-    `CVPixelBuffer`.
-  */
-  public func pixelBuffer(width: Int, height: Int) -> CVPixelBuffer? {
-    return pixelBuffer(width: width, height: height,
-                       pixelFormatType: kCVPixelFormatType_32ARGB,
-                       colorSpace: CGColorSpaceCreateDeviceRGB(),
-                       alphaInfo: .noneSkipFirst)
-  }
-
-  /**
-    Converts the image to a grayscale `CVPixelBuffer`.
-  */
-  public func pixelBufferGray() -> CVPixelBuffer? {
-    return pixelBufferGray(width: Int(size.width), height: Int(size.height))
-  }
-
-  /**
-    Resizes the image to `width` x `height` and converts it to a grayscale
-    `CVPixelBuffer`.
-  */
-  public func pixelBufferGray(width: Int, height: Int) -> CVPixelBuffer? {
-    return pixelBuffer(width: width, height: height,
-                       pixelFormatType: kCVPixelFormatType_OneComponent8,
-                       colorSpace: CGColorSpaceCreateDeviceGray(),
-                       alphaInfo: .none)
-  }
-
-  /**
-    Resizes the image to `width` x `height` and converts it to a `CVPixelBuffer`
-    with the specified pixel format, color space, and alpha channel.
-  */
-  public func pixelBuffer(width: Int, height: Int,
-                          pixelFormatType: OSType,
-                          colorSpace: CGColorSpace,
-                          alphaInfo: CGImageAlphaInfo) -> CVPixelBuffer? {
-    var maybePixelBuffer: CVPixelBuffer?
-    let attrs = [kCVPixelBufferCGImageCompatibilityKey: kCFBooleanTrue,
-                 kCVPixelBufferCGBitmapContextCompatibilityKey: kCFBooleanTrue]
-    let status = CVPixelBufferCreate(kCFAllocatorDefault,
-                                     width,
-                                     height,
-                                     pixelFormatType,
-                                     attrs as CFDictionary,
-                                     &maybePixelBuffer)
-
-    guard status == kCVReturnSuccess, let pixelBuffer = maybePixelBuffer else {
-      return nil
-    }
-
-    let flags = CVPixelBufferLockFlags(rawValue: 0)
-    guard kCVReturnSuccess == CVPixelBufferLockBaseAddress(pixelBuffer, flags) else {
-      return nil
-    }
-    defer { CVPixelBufferUnlockBaseAddress(pixelBuffer, flags) }
-
-    guard let context = CGContext(data: CVPixelBufferGetBaseAddress(pixelBuffer),
-                                  width: width,
-                                  height: height,
-                                  bitsPerComponent: 8,
-                                  bytesPerRow: CVPixelBufferGetBytesPerRow(pixelBuffer),
-                                  space: colorSpace,
-                                  bitmapInfo: alphaInfo.rawValue)
-    else {
-      return nil
-    }
-
-    UIGraphicsPushContext(context)
-    context.translateBy(x: 0, y: CGFloat(height))
-    context.scaleBy(x: 1, y: -1)
-    self.draw(in: CGRect(x: 0, y: 0, width: width, height: height))
-    UIGraphicsPopContext()
-
-    return pixelBuffer
-  }
-}
-
-extension UIImage {
-  /**
-    Creates a new UIImage from a CVPixelBuffer.
-
-    - Note: Not all CVPixelBuffer pixel formats support conversion into a
-            CGImage-compatible pixel format.
-  */
-  public convenience init?(pixelBuffer: CVPixelBuffer) {
-    if let cgImage = CGImage.create(pixelBuffer: pixelBuffer) {
-      self.init(cgImage: cgImage)
-    } else {
-      return nil
-    }
-  }
-
-  /*
-  // Alternative implementation:
-  public convenience init?(pixelBuffer: CVPixelBuffer) {
-    // This converts the image to a CIImage first and then to a UIImage.
-    // Does not appear to work on the simulator but is OK on the device.
-    self.init(ciImage: CIImage(cvPixelBuffer: pixelBuffer))
-  }
-  */
-
-  /**
-    Creates a new UIImage from a CVPixelBuffer, using a Core Image context.
-  */
-  public convenience init?(pixelBuffer: CVPixelBuffer, context: CIContext) {
-    if let cgImage = CGImage.create(pixelBuffer: pixelBuffer, context: context) {
-      self.init(cgImage: cgImage)
-    } else {
-      return nil
-    }
-  }
-}
+//extension UIImage {
+//  /**
+//    Creates a new UIImage from a CVPixelBuffer.
+//
+//    - Note: Not all CVPixelBuffer pixel formats support conversion into a
+//            CGImage-compatible pixel format.
+//  */
+//  public convenience init?(pixelBuffer: CVPixelBuffer) {
+//    if let cgImage = CGImage.create(pixelBuffer: pixelBuffer) {
+//      self.init(cgImage: cgImage)
+//    } else {
+//      return nil
+//    }
+//  }
+//
+//  /*
+//  // Alternative implementation:
+//  public convenience init?(pixelBuffer: CVPixelBuffer) {
+//    // This converts the image to a CIImage first and then to a UIImage.
+//    // Does not appear to work on the simulator but is OK on the device.
+//    self.init(ciImage: CIImage(cvPixelBuffer: pixelBuffer))
+//  }
+//  */
+//
+//  /**
+//    Creates a new UIImage from a CVPixelBuffer, using a Core Image context.
+//  */
+//  public convenience init?(pixelBuffer: CVPixelBuffer, context: CIContext) {
+//    if let cgImage = CGImage.create(pixelBuffer: pixelBuffer, context: context) {
+//      self.init(cgImage: cgImage)
+//    } else {
+//      return nil
+//    }
+//  }
+//}
 
 extension CGImage {
   /**

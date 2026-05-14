@@ -147,6 +147,19 @@ fun AnalyzeScreen(
         }
     }
 
+    if (state.showNoDetectionAlert) {
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissNoDetectionAlert() },
+            title = { Text(stringResource(R.string.detection_no_lesion_title)) },
+            text = { Text(stringResource(R.string.detection_no_lesion)) },
+            confirmButton = {
+                TextButton(onClick = { viewModel.dismissNoDetectionAlert() }) {
+                    Text(stringResource(android.R.string.ok))
+                }
+            },
+        )
+    }
+
     if (state.error != null) {
         AlertDialog(
             onDismissRequest = { viewModel.clearError() },
@@ -287,7 +300,6 @@ fun AnalyzeScreen(
                     }
 
                     else -> {
-                        // Фото весом в доступной высоте; кнопки снизу — всегда на экране.
                         Column(
                             modifier = Modifier.fillMaxSize(),
                             horizontalAlignment = Alignment.CenterHorizontally,

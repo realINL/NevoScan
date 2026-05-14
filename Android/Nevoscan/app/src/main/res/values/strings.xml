@@ -1,6 +1,19 @@
 <resources>
     <string name="app_name">Nevoscan</string>
 
+    <!-- Terms / privacy (first launch) -->
+    <string name="terms_title">Условия использования</string>
+    <string name="terms_highlight1_title">Профилактическое средство</string>
+    <string name="terms_highlight1_description">Приложение не заменяет консультацию врача</string>
+    <string name="terms_highlight2_title">Локальная обработка</string>
+    <string name="terms_highlight2_description">Все фотографии анализируются только на вашем устройстве</string>
+    <string name="terms_highlight3_title">Конфиденциальность</string>
+    <string name="terms_highlight3_description">Данные не передаются третьим лицам</string>
+    <string name="terms_basic_provisions">Основные положения</string>
+    <string name="terms_policy_link">Политика конфиденциальности</string>
+    <string name="terms_agree">Принимаю условия</string>
+    <string name="terms_agree_disclaimer">Нажимая кнопку, вы соглашаетесь с условиями</string>
+
     <!-- Home -->
     <string name="home_title">Проверьте свою\nродинку</string>
     <string name="home_subtitle">Загрузите фото своей родинки и узнайте о ней подробнее</string>
@@ -16,6 +29,7 @@
     <string name="btn_start_analyze">Начать анализ</string>
     <string name="analyze_in_progress">Анализируем ваше фото</string>
     <string name="detection_in_progress">Ищем зону на фото…</string>
+    <string name="detection_no_lesion_title">Объект не найден</string>
     <string name="detection_no_lesion">Новообразование не обнаружено. Попробуйте другое фото.</string>
     <string name="yolo_model_missing">Файл модели детекции не найден. Добавьте yolo.onnx в каталог assets приложения.</string>
     <string name="error_bitmap_copy">Не удалось скопировать изображение</string>

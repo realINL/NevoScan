@@ -1,0 +1,67 @@
+/* 
+  Localizable.strings
+  NevoScan
+
+  Created by Илья Лебедев on 14.05.2026.
+  
+*/
+
+// MARK: Приложение
+"app.name" = "NevoScan";
+
+// MARK: Главный экран
+"home.headline" = "Revisa tu\nlunar";
+"home.subtitle" = "Sube una foto de tu lunar y obtén más información sobre él";
+"home.my_analyses" = "Mis análisis";
+
+// MARK: Действия
+"action.start_analysis" = "Iniciar análisis";
+"action.reset" = "Reiniciar";
+"action.delete" = "Eliminar";
+"action.ok" = "Aceptar";
+
+// MARK: Анализ
+"analyze.recommendations" = "Recomendaciones";
+"analyze.pick_source" = "Elige una fuente para subir la foto";
+"analyze.photo_library" = "Biblioteca";
+"analyze.camera" = "Cámara";
+"analyze.loading" = "Analizando tu foto";
+
+// MARK: История
+"history.title" = "Historial de análisis";
+"history.card.safety %@" = "%@ de seguridad";
+"history.empty" = "El historial está vacío";
+
+// MARK: Результат
+"result.title" = "Resultado del análisis";
+"result.prob.benign %@" = "%@ neoplasia benigna";
+"result.prob.malign %@" = "%@ neoplasia maligna";
+"result.process" = "Proceso de análisis";
+"result.disclaimer" = "No es un diagnóstico";
+"result.phase.crop" = "1. Recorte";
+"result.phase.mask" = "2. Máscara del lunar";
+
+// MARK: Инструкции
+"instruction.focus.title" = "Enfoque nítido";
+"instruction.focus.body" = "Fotografía el lunar desde una distancia de 10-15 cm usando el modo macro o zoom. Evita fotos borrosas";
+"instruction.light.title" = "Iluminación";
+"instruction.light.body" = "El lunar debe estar bien iluminado para que se vean los bordes, la textura y el color. Es mejor usar luz natural";
+"instruction.clear.title" = "Sin elementos sobrantes";
+"instruction.clear.body" = "El lunar debe ser completamente visible. La foto no debe tener vello cubriendo el lunar, ropa ni maquillaje";
+
+// MARK: Ошибки
+"error.processing" = "Error al procesar";
+"error.noMole" = "No se pudo detectar un lunar en la imagen";
+
+// MARK: Terms of use
+"terms.title" = "Términos de uso";
+"terms.highlight1.title" = "Herramienta preventiva";
+"terms.highlight1.description" = "La app no sustituye la consulta médica";
+"terms.highlight2.title" = "Procesamiento local";
+"terms.highlight2.description" = "Todas las fotos se analizan solo en tu dispositivo";
+"terms.highlight3.title" = "Privacidad";
+"terms.highlight3.description" = "Los datos no se comparten con terceros";
+"terms.basic_provisions" = "Disposiciones básicas";
+"terms.terms" = "Política de privacidad";
+"terms.agree" = "Acepto los términos";
+"terms.agree.disclaimer" = "Al pulsar «Acepto», aceptas los términos";

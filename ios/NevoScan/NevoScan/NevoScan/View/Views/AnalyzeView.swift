@@ -46,14 +46,14 @@ struct AnalyzeView: View {
             
             Spacer()
         }
-        .alert("Ошибка обработки",
+        .alert("error.processing",
                isPresented: $viewModel.showAlert,
                presenting: viewModel.alertText) {
             details in
-            Button("Ok", role: .cancel) { }
+            Button("action.ok", role: .cancel) { }
             
         } message: { details in
-            Text(details.localizedDescription)
+            Text(LocalizedStringKey(stringLiteral: details.localizedDescription))
         }
         
     }
@@ -62,8 +62,9 @@ struct AnalyzeView: View {
     private var instructionHeaderView: some View {
         HStack {
             Group {
-                Text("Рекомендации")
-                Image(systemName: viewModel.presentInstructions ? "chevron.up" : "chevron.down")
+                Text("analyze.recommendations")
+                Image(systemName: "chevron.down")
+                    .rotationEffect(.degrees(viewModel.presentInstructions ? 0 : -90))
                     .onTapGesture {
                         withAnimation {
                             viewModel.presentInstructions.toggle()
@@ -88,16 +89,16 @@ struct AnalyzeView: View {
     private var photoPickerView: some View {
         VStack {
             
-            Text("Выберите источник для загрузки фото")
+            Text("analyze.pick_source")
                 .padding(38)
             
             PhotosPicker(selection: $viewModel.selectedItem, matching: .images) {
-                Text("Медиатека")
+                Text("analyze.photo_library")
             }
             .buttonStyle(InputButtonStyle())
             .padding(.bottom, 19)
             
-            Button("Камера") {
+            Button("analyze.camera") {
                 viewModel.presentCamera = true
             }
             .buttonStyle(InputButtonStyle())
@@ -128,14 +129,14 @@ struct AnalyzeView: View {
             }
             
             if !viewModel.isLoading {
-                Button("Сбросить") {
+                Button("action.reset") {
                     withAnimation {
                         viewModel.resetSelectedImage()
                     }
                 }
                 .buttonStyle(ResetButtonStyle())
                 
-                Button("Начать анализ") {
+                Button("action.start_analysis") {
                     withAnimation {
                         viewModel.analyze()
                     }
@@ -146,7 +147,7 @@ struct AnalyzeView: View {
                 ProgressView()
                     .scaleEffect(2.0)
                     .padding(.top, 62)
-                Text("Анализируем ваше фото")
+                Text("analyze.loading")
                     .padding(.vertical, 26)
                 
             }
@@ -174,7 +175,4 @@ struct AnalyzeView: View {
     
 }
 
-//#Preview {
-//    AnalyzeView(viewModel: AnalyzeViewModel(modelContext: ))
-//        .modelContainer(for: Research.self, inMemory: true)
-//}
+

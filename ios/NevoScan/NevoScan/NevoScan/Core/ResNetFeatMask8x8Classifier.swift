@@ -47,7 +47,6 @@ enum ResNetFeatMask8x8Config {
     static let malignLabel = "Злокачественное"
 
     static let maskThreshold: Float = 0.5
-    /// ImageNet (как `transforms.Normalize` в torchvision).
     static let meanRGB: [Float] = [0.485, 0.456, 0.406]
     static let stdRGB: [Float] = [0.229, 0.224, 0.225]
 }
@@ -462,58 +461,3 @@ private func mlaReadFloat(_ array: MLMultiArray, linear: Int) -> Float {
     }
 }
 
-// MARK: - UIImage
-
-private extension UIImage {
-    func preparedForClassifierInference() -> UIImage? {
-        let oriented = normalizedClassifierUp()
-        return oriented.strippingAlphaClassifierOnWhite()
-    }
-
-    func normalizedClassifierUp() -> UIImage {
-        guard imageOrientation != .up else { return self }
-        let format = UIGraphicsImageRendererFormat()
-        format.scale = scale
-        let renderer = UIGraphicsImageRenderer(size: size, format: format)
-        return renderer.image { _ in
-            draw(in: CGRect(origin: .zero, size: size))
-        }
-    }
-
-    func resizedClassifier256() -> UIImage? {
-        let target = CGSize(width: ResNetFeatMask8x8Config.size, height: ResNetFeatMask8x8Config.size)
-        let format = UIGraphicsImageRendererFormat()
-        format.scale = 1
-        format.opaque = true
-        let renderer = UIGraphicsImageRenderer(size: target, format: format)
-        return renderer.image { _ in
-            UIGraphicsGetCurrentContext()?.interpolationQuality = .medium
-            draw(in: CGRect(origin: .zero, size: target))
-        }
-    }
-
-    func strippingAlphaClassifierOnWhite() -> UIImage? {
-        guard let cg = cgImage else { return nil }
-        if cgClassifierHasAlpha(cg) == false {
-            return self
-        }
-        let format = UIGraphicsImageRendererFormat()
-        format.scale = scale
-        format.opaque = true
-        let renderer = UIGraphicsImageRenderer(size: size, format: format)
-        return renderer.image { context in
-            UIColor.white.setFill()
-            context.fill(CGRect(origin: .zero, size: size))
-            draw(in: CGRect(origin: .zero, size: size))
-        }
-    }
-}
-
-private func cgClassifierHasAlpha(_ cg: CGImage) -> Bool {
-    switch cg.alphaInfo {
-    case .none, .noneSkipFirst, .noneSkipLast:
-        return false
-    default:
-        return true
-    }
-}

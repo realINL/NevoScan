@@ -10,25 +10,17 @@ import YOLO
 import UIKit
 import CoreML
 
-protocol engine {
-    var detector: Detector2? { get }
-    var segmenter: ResNetFeatMask8x8Classifier? { get }
-    
-    func predict(on image: UIImage) -> Research
-}
-
 // MARK: CoreEngine class
 /// Class for core engine of analysis
-class CoreEngine {
-    private let detector: Detector2
-//    private let segmenter: ResNetFeatMask8x8Classifier
-    private let seg: Segmenter
-    private let classifier: ResNetFeatMask8x8Classifier?
+class CoreEngine: EngineProtocol {
+    private let detector: DetectorProtocol
+    private let segmenter: SegmenterProtocol
+    private let classifier: ClassifierProtocol
     
     init() throws {
         self.detector = Detector2()
-        self.seg = try Segmenter()
-        self.classifier = try ResNetFeatMask8x8Classifier.loadBundled()
+        self.segmenter = try SegmenterImageType()
+        self.classifier = try Classifier()
     }
     
     func detect(on image: UIImage) async throws -> (cropedImage: UIImage,
@@ -41,27 +33,18 @@ class CoreEngine {
     
     // MARK: Segmentation function
     /// Function for segmentation image
-    private func segment(image: UIImage) async throws -> (mask: UIImage, maskArray: MLMultiArray, layout: LetterboxLayout) {
-        let result = await seg.runSegmentation(on: image)
-        
-        guard let mask = result.maskResult, let maskArray = result.maskArray, let layout = result.layout else {
-            print("no mask")
-            throw CoreEngineErrors.segmentationError
-        }
-        
-        return (mask, maskArray, layout)
+    private func segment(image: UIImage) async throws -> (mask: UIImage, maskArray: MLMultiArray) {
+        let result = try await segmenter.runSegmentation(on: image)
+        return (result.maskResult, result.maskArray)
     }
     
     // MARK: Classification function
     /// Function for classification image. Returns benign and malign probabilities
-    private func classify(image: UIImage, binaryMask256: MLMultiArray, deepLabMask: MLMultiArray) throws -> (benign: Double, malign: Double) {
+    private func classify(image: UIImage, mask: MLMultiArray) throws -> (benign: Double, malign: Double) {
         do {
-            let classificationResult = try classifier?.probabilities(
-                from: image,
-                binaryMask256: binaryMask256,
-                deepLabMaskForDump: deepLabMask
-            )
-            guard let benign = classificationResult?.benign, let malign = classificationResult?.malign else { throw CoreEngineErrors.classificationError }
+            let classificationResult = try classifier.probabilities(image: image, mask: mask)
+            let benign = classificationResult.benign
+            let malign = classificationResult.malign
             return (benign, malign)
         } catch {
             throw CoreEngineErrors.classificationError
@@ -73,9 +56,7 @@ class CoreEngine {
     /// Main function for mole analysis. Returns research result
     func predict(on image: UIImage) async throws -> Research {
         let segmentation = try await self.segment(image: image)
-        let rawBinary256 = try seg.binaryMask256ForClassifier(fromRawOutput: segmentation.maskArray)
-        let binary256 = try seg.etalonAlignedBinaryMask256(fromBinary256: rawBinary256, letterboxLayout: segmentation.layout)
-        let classification = try self.classify(image: image, binaryMask256: binary256, deepLabMask: segmentation.maskArray)
+        let classification = try self.classify(image: image, mask: segmentation.maskArray)
         
         let result = Research(benignProbability: classification.benign, malignProbability: classification.malign, croppedImage: image, segmentationImage: segmentation.mask)
         
