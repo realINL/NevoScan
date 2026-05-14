@@ -1,3 +1,4 @@
+import { AnalyzeError } from '../hooks/useAnalyze';
 import type { TaskStatusResponse } from '../types/types';
 
 export class ApiError extends Error {
@@ -101,8 +102,8 @@ export async function waitForTaskResult(
             continue;
         }
 
-        if (payload.result?.status=== 'no_object') {
-            throw new Error('На фото не обнаружена родинка. Загрузите другое изображение.');
+        if (payload.result?.status === 'no_object') {
+            throw new AnalyzeError('На фото не обнаружена родинка. Загрузите другое изображение.');
         }
 
         if (payload.status === 'failed' || payload.status === 'error') {

@@ -2,22 +2,17 @@ import { useState } from 'react';
 import { ApiError, uploadImage, waitForTaskResult } from '../api/api';
 import type { AnalysisResult, TaskStatusResponse } from '../types/types';
 
-class AnalyzeError extends Error {
-
+export class AnalyzeError extends Error {
     constructor(message: string,) {
         super(message);
         this.name = 'AnalyzeError';
     }
 }
-
-
 type AnalyzeErrorUi = undefined | null | string;
 
 interface UseAnalyzeReturn {
     isLoading: boolean;
-    /** Сообщения валидации файла на форме (не связано с HTTP-анализом) */
     error: string | null;
-    /** Что показать в Result при сбое анализа */
     analyzeErrorUi: AnalyzeErrorUi;
     analysis: AnalysisResult | null;
     runAnalyze: (file: File) => Promise<void>;
@@ -72,17 +67,19 @@ export function useAnalyze(): UseAnalyzeReturn {
                     throw new AnalyzeError('Сервер вернул pending без task_id');
                 }
                 payload = await waitForTaskResult(taskId);
+            } else if (payload.result?.status === 'no_object') {
+                console.log('No object!')
+                throw new AnalyzeError('На фото не обнаружена родинка. Загрузите другое изображение.');
             } else if (payload.status === 'failed' || payload.status === 'error') {
                 throw new AnalyzeError('Анализ завершился с ошибкой');
-            } else if (payload.status == 'completed' && payload.result?.status === 'no_object') {
-                throw new AnalyzeError('На фото не обнаружена родинка. Загрузите другое изображение.');
             }
 
             setAnalysis(toAnalysisResult(payload));
         } catch (e) {
-            if (e instanceof ApiError && e.status === 400) {
+             if (e instanceof ApiError && e.status === 400) {
                 setAnalyzeErrorUi('Сервер не принял тип файла. Загрузите JPG, JPEG или PNG.');
             } else if (e instanceof AnalyzeError) {
+                console.log('SET UIError ‘{e.message}‘')
                 setAnalyzeErrorUi(e.message);
             } else {
                 setAnalyzeErrorUi(null);

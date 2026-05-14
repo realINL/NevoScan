@@ -1,5 +1,5 @@
 export interface AnalysisResult {
-    status: string;
+    status: string;    
     probability_malign: number;
     probability_benign: number;
     result: string;
